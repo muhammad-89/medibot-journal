@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sidebar } from "@/components/Sidebar";
@@ -13,7 +13,7 @@ const Index = () => {
   const { toast } = useToast();
 
   // Create a ref to store the addNewChat function from Sidebar
-  const addNewChatRef = React.useRef<((chatName: string) => void) | null>(null);
+  const addNewChatRef = useRef<((chatName: string) => void) | null>(null);
 
   const handleNewChat = (chatName: string) => {
     if (chatName.trim()) {

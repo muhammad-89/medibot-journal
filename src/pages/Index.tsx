@@ -13,12 +13,11 @@ const Index = () => {
   const { toast } = useToast();
 
   const handleNewChat = (chatName: string) => {
-    // Here we'll handle creating a new chat
-    toast({
-      title: "New chat created",
-      description: `Chat "${chatName}" has been created successfully.`,
-    });
-    setShowNewChatDialog(false);
+    if (chatName.trim()) {
+      // Pass the chat name to the Sidebar component through a ref or context
+      // For now, we'll just close the dialog as the state is managed in Sidebar
+      setShowNewChatDialog(false);
+    }
   };
 
   return (

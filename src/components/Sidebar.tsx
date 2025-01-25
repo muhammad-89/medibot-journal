@@ -3,6 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquarePlus, Search, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface Chat {
+  id: string;
+  name: string;
+  date: string;
+}
 
 interface SidebarProps {
   onNewChat: () => void;
@@ -12,13 +19,36 @@ interface SidebarProps {
 
 export const Sidebar = ({ onNewChat, currentChat, setCurrentChat }: SidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  
-  // Mock chat history - replace with real data
-  const chatHistory = [
-    { id: "1", name: "Chest X-Ray Analysis", date: "2024-03-20" },
-    { id: "2", name: "Blood Test Results", date: "2024-03-19" },
-    { id: "3", name: "MRI Consultation", date: "2024-03-18" },
-  ];
+  const [chatHistory, setChatHistory] = useState<Chat[]>([]);
+  const { toast } = useToast();
+
+  const addNewChat = (chatName: string) => {
+    const newChat: Chat = {
+      id: Date.now().toString(), // Simple ID generation
+      name: chatName,
+      date: new Date().toISOString().split('T')[0],
+    };
+    
+    setChatHistory(prev => [newChat, ...prev]);
+    setCurrentChat(newChat.id);
+    
+    toast({
+      title: "Chat created",
+      description: `New chat "${chatName}" has been created.`,
+    });
+  };
+
+  const deleteChat = (chatId: string) => {
+    setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+    if (currentChat === chatId) {
+      setCurrentChat(null);
+    }
+    
+    toast({
+      title: "Chat deleted",
+      description: "The chat has been deleted successfully.",
+    });
+  };
 
   const filteredChats = chatHistory.filter(chat =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -65,7 +95,7 @@ export const Sidebar = ({ onNewChat, currentChat, setCurrentChat }: SidebarProps
                   className="opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Handle delete
+                    deleteChat(chat.id);
                   }}
                 >
                   <Trash2 className="h-4 w-4" />

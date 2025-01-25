@@ -12,10 +12,13 @@ const Index = () => {
   const [currentChat, setCurrentChat] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Create a ref to store the addNewChat function from Sidebar
+  const addNewChatRef = React.useRef<((chatName: string) => void) | null>(null);
+
   const handleNewChat = (chatName: string) => {
     if (chatName.trim()) {
-      // Pass the chat name to the Sidebar component through a ref or context
-      // For now, we'll just close the dialog as the state is managed in Sidebar
+      // Call the addNewChat function from Sidebar through the ref
+      addNewChatRef.current?.(chatName);
       setShowNewChatDialog(false);
     }
   };
@@ -26,6 +29,7 @@ const Index = () => {
         onNewChat={() => setShowNewChatDialog(true)}
         currentChat={currentChat}
         setCurrentChat={setCurrentChat}
+        addNewChatRef={addNewChatRef}
       />
       
       <main className="flex-1 flex flex-col">

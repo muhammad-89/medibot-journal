@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useImperativeHandle, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,16 +15,22 @@ interface SidebarProps {
   onNewChat: () => void;
   currentChat: string | null;
   setCurrentChat: (chatId: string | null) => void;
+  addNewChatRef: React.MutableRefObject<((chatName: string) => void) | null>;
 }
 
-export const Sidebar = ({ onNewChat, currentChat, setCurrentChat }: SidebarProps) => {
+export const Sidebar = ({ 
+  onNewChat, 
+  currentChat, 
+  setCurrentChat,
+  addNewChatRef 
+}: SidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [chatHistory, setChatHistory] = useState<Chat[]>([]);
   const { toast } = useToast();
 
   const addNewChat = (chatName: string) => {
     const newChat: Chat = {
-      id: Date.now().toString(), // Simple ID generation
+      id: Date.now().toString(),
       name: chatName,
       date: new Date().toISOString().split('T')[0],
     };
@@ -37,6 +43,14 @@ export const Sidebar = ({ onNewChat, currentChat, setCurrentChat }: SidebarProps
       description: `New chat "${chatName}" has been created.`,
     });
   };
+
+  // Expose addNewChat function through the ref
+  useEffect(() => {
+    addNewChatRef.current = addNewChat;
+    return () => {
+      addNewChatRef.current = null;
+    };
+  }, [addNewChatRef]);
 
   const deleteChat = (chatId: string) => {
     setChatHistory(prev => prev.filter(chat => chat.id !== chatId));

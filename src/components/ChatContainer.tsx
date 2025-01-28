@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Image, Send, Paperclip, Bot, User } from "lucide-react";
+import { Image, Send, Paperclip, Bot, User, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -10,7 +10,7 @@ interface Message {
   content: string;
   role: "user" | "assistant";
   timestamp: Date;
-  attachments?: { type: string; url: string }[];
+  attachments?: { type: string; url: string; name: string }[];
 }
 
 interface ChatContainerProps {
@@ -21,7 +21,9 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const scrollToBottom = () => {
@@ -33,17 +35,32 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() && attachments.length === 0) return;
+
+    const attachmentUrls = await Promise.all(
+      attachments.map(async (file) => {
+        // In a real app, you would upload the file to a server here
+        // For now, we'll create a temporary URL
+        const url = URL.createObjectURL(file);
+        return {
+          type: file.type.startsWith("image/") ? "image" : "file",
+          url,
+          name: file.name,
+        };
+      })
+    );
 
     const userMessage: Message = {
       id: Date.now().toString(),
       content: input,
       role: "user",
       timestamp: new Date(),
+      attachments: attachmentUrls,
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setAttachments([]);
     setIsLoading(true);
 
     try {
@@ -74,14 +91,19 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Handle file upload logic here
+    const files = event.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setAttachments((prev) => [...prev, ...newFiles]);
       toast({
-        title: "File uploaded",
-        description: `${file.name} has been uploaded successfully.`,
+        title: "Files attached",
+        description: `${newFiles.length} file(s) attached successfully.`,
       });
     }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -109,7 +131,23 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
                 <div className="mt-1">{message.content}</div>
                 {message.attachments?.map((attachment, index) => (
                   <div key={index} className="mt-2">
-                    {/* Render attachments based on type */}
+                    {attachment.type === "image" ? (
+                      <img
+                        src={attachment.url}
+                        alt={attachment.name}
+                        className="max-w-xs rounded-lg"
+                      />
+                    ) : (
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-primary hover:underline"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        {attachment.name}
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
@@ -120,19 +158,41 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
       </ScrollArea>
 
       <div className="p-4 glass">
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {attachments.map((file, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 bg-secondary/50 rounded-lg px-2 py-1"
+              >
+                <span className="text-sm truncate max-w-[200px]">
+                  {file.name}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => removeAttachment(index)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="icon"
-            onClick={() => document.getElementById("file-upload")?.click()}
+            onClick={() => fileInputRef.current?.click()}
           >
             <Paperclip className="h-4 w-4" />
           </Button>
           <input
-            id="file-upload"
+            ref={fileInputRef}
             type="file"
             className="hidden"
-            accept="image/*,.pdf,.doc,.docx"
+            multiple
             onChange={handleFileUpload}
           />
           <Textarea
@@ -149,7 +209,7 @@ export const ChatContainer = ({ chatId }: ChatContainerProps) => {
           />
           <Button
             onClick={handleSend}
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || (!input.trim() && attachments.length === 0)}
             className="w-24"
           >
             {isLoading ? (

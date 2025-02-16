@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatContainer } from "@/components/ChatContainer";
@@ -9,31 +11,27 @@ import { NewChatDialog } from "@/components/NewChatDialog";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 export default function Home() {
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const [currentChat, setCurrentChat] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-
-  // Mock user data - replace with actual user data from your auth system
-  const user = {
-    name: "John Doe",
-    email: "john@example.com",
-  };
+  const { data: session } = useSession();
 
   // Create a ref to store the addNewChat function from Sidebar
   const addNewChatRef = useRef<((chatName: string) => void) | null>(null);
 
   const handleNewChat = (chatName: string) => {
     if (chatName.trim()) {
-      // Call the addNewChat function from Sidebar through the ref
       addNewChatRef.current?.(chatName);
       setShowNewChatDialog(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
@@ -59,8 +57,8 @@ export default function Home() {
                 <User className="h-4 w-4" />
               </div>
               <div className="text-sm">
-                <div className="font-medium">{user.name}</div>
-                <div className="text-muted-foreground">{user.email}</div>
+                <div className="font-medium">{session?.user?.name || "Guest"}</div>
+                <div className="text-muted-foreground">{session?.user?.email}</div>
               </div>
             </div>
             <ThemeToggle />
